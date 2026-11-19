@@ -1,0 +1,15 @@
+# 构建中间产物
+zuot-build/build/
+zuot-build/out/
+
+# Android SDK 构建工具（体积大，请按 README 自行准备）
+zuot-build/bt/
+zuot-build/plat/
+zuot-build/dl/
+
+# 签名密钥（勿提交）
+*.keystore
+*.idsig
+
+# Python
+__pycache__/

@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>参考工具</title>
+<script src="echarts.min.js"></script>
+<script src="data.js"></script>
+<style>
+  :root{
+    --bg:#0b0e14; --panel:#12151c; --panel2:#161a22; --border:#1f2530;
+    --text:#d6dae3; --muted:#8b93a3; --up:#ef4444; --down:#22c55e;
+    --accent:#3b82f6; --amber:#f7b500;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+    display:flex; flex-direction:column; overflow:hidden;
+  }
+  /* ---------- header ---------- */
+  header{
+    height:48px; flex:0 0 48px; display:flex; align-items:center; gap:12px;
+    padding:0 12px; background:var(--panel); border-bottom:1px solid var(--border);
+  }
+  header .title{font-weight:700; font-size:15px; color:#fff; white-space:nowrap;}
+  header .sub{color:var(--muted); font-size:12px;}
+  .toggle{display:flex; border:1px solid var(--border); border-radius:6px; overflow:hidden;}
+  .toggle button{
+    background:transparent; color:var(--muted); border:none; cursor:pointer;
+    padding:6px 14px; font-size:13px;
+  }
+  .toggle button.on{background:var(--accent); color:#fff;}
+  .spacer{flex:1;}
+  header label{color:var(--muted); font-size:12px; display:flex; align-items:center; gap:6px; white-space:nowrap;}
+  header input[type=number]{
+    width:96px; background:var(--panel2); color:var(--text);
+    border:1px solid var(--border); border-radius:6px; padding:5px 8px; font-size:13px;
+  }
+  header input[type=checkbox]{
+    width:15px; height:15px; accent-color:var(--accent); cursor:pointer;
+  }
+  input[type=date]{
+    background:var(--panel); color:var(--text); border:1px solid var(--border);
+    border-radius:6px; padding:5px 8px; font-size:13px; color-scheme:dark;
+  }
+  select{
+    background:var(--panel); color:var(--text); border:1px solid var(--border);
+    border-radius:6px; padding:5px 6px; font-size:13px; cursor:pointer;
+  }
+  .btn{
+    background:var(--panel2); color:var(--text); border:1px solid var(--border);
+    border-radius:6px; padding:6px 12px; cursor:pointer; font-size:13px; white-space:nowrap;
+  }
+  .btn:hover{border-color:var(--accent); color:#fff;}
+  .btn:disabled{opacity:.4; cursor:not-allowed;}
+  .btn.danger:hover{border-color:var(--up); color:var(--up);}
+  .btn.active{background:var(--amber); border-color:var(--amber); color:#111; font-weight:600;}
+  /* ---------- main ---------- */
+  main{flex:1; display:flex; min-height:0; padding:8px 10px; gap:10px;}
+  .charts{flex:1; display:flex; flex-direction:column; min-width:0; gap:6px;}
+  .chartbox{flex:1; display:flex; flex-direction:column; min-height:0; background:var(--panel); border:1px solid var(--border); border-radius:8px;}
+  #mainBox{flex:1.6;}
+  #indexBox{flex:1;}
+  .clabel{height:26px; flex:0 0 26px; display:flex; align-items:center; gap:8px; padding:0 10px; font-size:12px; color:var(--muted);}
+  .clabel b{color:#fff; font-size:12px;}
+  .clabel .dot{width:8px; height:8px; border-radius:50%;}
+  .clabel .chg{font-weight:700; font-variant-numeric:tabular-nums;}
+  #mainChart,#indexChart{flex:1; min-height:0;}
+  /* ---------- side panel ---------- */
+  aside{
+    flex:0 0 330px; width:330px; overflow-y:auto; background:var(--panel);
+    border:1px solid var(--border); border-radius:8px; padding:10px;
+    display:flex; flex-direction:column; gap:10px;
+  }
+  .sect{background:var(--panel2); border:1px solid var(--border); border-radius:8px; padding:9px 10px;}
+  .sect h3{font-size:11px; color:var(--muted); font-weight:600; margin-bottom:7px; letter-spacing:.5px;}
+  .row{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .row input{
+    background:var(--panel); color:var(--text); border:1px solid var(--border);
+    border-radius:6px; padding:6px 8px; font-size:13px; width:90px;
+  }
+  .amt{font-size:12px; color:var(--muted); min-width:66px; font-variant-numeric:tabular-nums;}
+  .btn.buy{background:var(--up); border-color:var(--up); color:#fff; font-weight:600;}
+  .btn.sell{background:var(--down); border-color:var(--down); color:#fff; font-weight:600;}
+  .btn.buy:hover,.btn.sell:hover{filter:brightness(1.1); color:#fff;}
+  .bigprice{font-size:22px; font-weight:700; color:#fff; font-variant-numeric:tabular-nums;}
+  .muted{color:var(--muted);}
+  .up{color:var(--up);}
+  .down{color:var(--down);}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:6px 12px;}
+  .stat{display:flex; flex-direction:column; gap:1px;}
+  .stat label{font-size:10px; color:var(--muted);}
+  .stat span{font-size:14px; font-weight:600; color:#fff; font-variant-numeric:tabular-nums;}
+  .chips{display:flex; flex-wrap:wrap; gap:5px; margin-top:4px;}
+  .chip{
+    display:inline-flex; align-items:center; gap:4px; background:var(--panel);
+    border:1px solid var(--border); border-radius:12px; padding:2px 8px; font-size:11px; color:var(--text);
+  }
+  .chip .dot{width:7px; height:7px; border-radius:50%; display:inline-block;}
+  .chip .x{cursor:pointer; color:var(--muted); font-weight:700;}
+  .chip .x:hover{color:var(--up);}
+  .log{
+    max-height:110px; overflow-y:auto; background:var(--panel); border:1px solid var(--border);
+    border-radius:6px; padding:5px 8px; font-size:12px; display:flex; flex-direction:column; gap:2px;
+  }
+  .logrow{white-space:nowrap;}
+  .tip{font-size:12px; line-height:1.6;}
+  .tip b{color:#fff;}
+  .hint{font-size:11px; color:var(--muted); line-height:1.5;}
+  @media (max-width:900px){
+    main{flex-direction:column; overflow-y:auto;}
+    aside{flex:1 1 auto; width:auto; max-height:45vh;}
+    .spacer{display:none;}
+  }
+</style>
+</head>
+<body>
+<header>
+  <label><input type="checkbox" id="chkRefLine" checked>参考线</label>
+  <label><input type="checkbox" id="chkVolume" checked>成交量</label>
+  <label><input type="checkbox" id="chkIndex" checked>上证指数</label>
+  <div class="spacer"></div>
+  <label>初始资金
+    <input id="initCap" type="number" min="0" step="1000" value="100000">
+    <button class="btn" id="btnSetInit">设定</button>
+  </label>
+</header>
+
+<main>
+  <div class="charts">
+    <div class="chartbox" id="mainBox">
+      <div class="clabel"><span class="dot" style="background:#3b82f6"></span><b>主图 · 159952 广发创业板ETF</b><span>浏览模式点K线设参考价/训练起点</span></div>
+      <div id="mainChart"></div>
+    </div>
+    <div class="chartbox" id="indexBox">
+      <div class="clabel"><span class="dot" style="background:#f7b500"></span><b>副图 · 上证指数</b><span id="idxChange" class="chg"></span></div>
+      <div id="indexChart"></div>
+    </div>
+  </div>
+
+  <aside>
+    <div class="sect">
+      <h3>训练模式</h3>
+      <div class="row">
+        <button class="btn" id="btnTrain">训练模式：关</button>
+        <button class="btn" id="btnPrev" disabled>上一步</button>
+        <button class="btn" id="btnNext" disabled>下一步</button>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div class="stat"><label>当前时间</label><span id="trainTime">—</span></div>
+        <div class="stat" style="margin-left:auto"><label>参考价/当前价</label><span class="bigprice" id="refPrice">-</span></div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <label class="muted" style="font-size:12px">默认起始日期</label>
+        <select id="trainDate" style="width:160px"></select>
+      </div>
+      <div class="hint" id="trainHint">开启训练模式后才能买卖；用「下一步」按收盘价推进，或用 ← → 方向键。</div>
+    </div>
+
+    <div class="sect">
+      <h3>买卖</h3>
+      <div class="row">
+        <input id="buyQty" type="number" min="1" placeholder="买入份额">
+        <select id="buyFrac" disabled><option value="">份</option></select>
+        <span class="amt" id="buyAmt"></span>
+        <button class="btn buy" id="btnBuy" disabled>买入</button>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <input id="sellQty" type="number" min="1" placeholder="卖出份额">
+        <select id="sellFrac" disabled><option value="">份</option></select>
+        <span class="amt" id="sellAmt"></span>
+        <button class="btn sell" id="btnSell" disabled>卖出</button>
+      </div>
+    </div>
+
+    <div class="sect">
+      <h3>账户</h3>
+      <div class="grid2">
+        <div class="stat"><label>持仓</label><span id="holdings">0 份</span></div>
+        <div class="stat"><label>今日可卖</label><span id="sellableToday">0 份</span></div>
+        <div class="stat"><label>成本价</label><span id="avgCost">—</span></div>
+        <div class="stat"><label>持仓市值</label><span id="mv">0.00</span></div>
+        <div class="stat"><label>现金</label><span id="cash">0.00</span></div>
+        <div class="stat"><label>仓位</label><span id="position">0.0%</span></div>
+        <div class="stat"><label>满仓份额</label><span id="fullShares">0 份</span></div>
+        <div class="stat"><label>浮动盈亏</label><span id="unreal">0.00</span></div>
+        <div class="stat"><label>已实现盈亏</label><span id="realized">0.00</span></div>
+        <div class="stat"><label>总资产</label><span id="assets">0.00</span></div>
+        <div class="stat"><label>总收益</label><span id="totalPL">0.00</span></div>
+      </div>
+    </div>
+
+    <div class="sect">
+      <h3>均线（图例可隐藏，这里可新增）</h3>
+      <div class="row">
+        <input id="maInput" type="number" min="2" max="999" placeholder="如 17">
+        <button class="btn" id="btnAddMA">添加均线</button>
+      </div>
+      <div class="chips" id="maChips"></div>
+    </div>
+
+    <div class="sect">
+      <h3>交易记录</h3>
+      <div class="log" id="tradeLog"></div>
+    </div>
+  </aside>
+</main>
+
+<script>
+(function(){
+  'use strict';
+  if(typeof echarts==='undefined'){ alert('echarts.min.js 未加载，请确认与 index.html 同目录'); return; }
+  if(typeof window.DATA==='undefined'){ alert('data.js 未加载，请先运行 _build_data.py 生成'); return; }
+
+  const DATA = window.DATA;
+  const BASE_MA = [5,10,20,30,60,144,250];
+  const MA_COLORS = {5:'#f7b500',10:'#22d3ee',20:'#e91e8c',30:'#a78bfa',60:'#9ca3af',144:'#3b82f6',250:'#fb923c'};
+  const EXTRA_COLORS = ['#f472b6','#4ade80','#f97316','#a3e635','#67e8f9','#c084fc','#fca5a5','#93c5fd','#fcd34d','#6ee7b7'];
+  const UP='#ef4444', DOWN='#22c55e';
+
+  let period = 'daily';
+  let mode = 'view';            // 'view' | 'train'
+  let curIdx = -1;              // 训练模式游标(主图索引)
+  let viewRefPrice = null;      // 浏览模式点击设定的参考价
+  let trainStartIdx = null;     // 浏览模式点击设定的训练起点
+  let customMAs = [];           // 用户新增均线周期
+  let showRefLine = true;       // 是否显示参考线
+  let showVolume = true;        // 是否显示成交量副图
+  let showIndex = true;         // 是否显示上证指数副图
+  let savedViewZoom = null;     // 进入训练模式前的缩放位置(关闭训练时还原)
+  let t1Date = null;            // 当前交易日(用于 T+1 判断)
+  let sellableToday = 0;        // 今日可卖份额(当日开盘前持有)
+
+  const st = { initial:100000, cash:100000, shares:0, avgCost:0, realized:0, trades:[] };
+  let mainChart=null, indexChart=null;
+
+  // ---------- helpers ----------
+  function $(id){ return document.getElementById(id); }
+  function series(instr){ return DATA[period][instr]; }
+  function fmtPrice(x){ return (x==null||isNaN(x))?'-':Number(x).toFixed(3); }
+  function fmtMoney(x){
+    const neg = x<0;
+    const s = Math.abs(x).toLocaleString('zh-CN',{minimumFractionDigits:2, maximumFractionDigits:2});
+    return (neg?'-':'')+s;
+  }
+  function fmtBig(x){
+    if(x>=1e8) return (x/1e8).toFixed(2)+'亿';
+    if(x>=1e4) return (x/1e4).toFixed(2)+'万';
+    return String(Math.round(x));
+  }
+  function pad(n){ return String(n).padStart(2,'0'); }
+  function fmtDate(ms){ const d=new Date(ms); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+  function fmtDateTime(ms){ const d=new Date(ms); return fmtDate(ms)+' '+pad(d.getHours())+':'+pad(d.getMinutes()); }
+  function dateStrToMs(dateStr){
+    if(!dateStr) return null;
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
+    if(!m) return null;
+    return new Date(+m[1], +m[2]-1, +m[3], 23, 59, 59, 999).getTime();
+  }
+  function axisLabel(ms){ return period==='daily' ? fmtDate(ms) : fmtDateTime(ms); }
+
+  function calcMA(arr, p){
+    const out = new Array(arr.length).fill(null);
+    let s=0;
+    for(let i=0;i<arr.length;i++){ s+=arr[i]; if(i>=p) s-=arr[i-p]; if(i>=p-1) out[i]=s/p; }
+    return out;
+  }
+  function nearestIdx(times, time){
+    let lo=0, hi=times.length-1, ans=-1;
+    while(lo<=hi){ const mid=(lo+hi)>>1; if(times[mid]<=time){ ans=mid; lo=mid+1; } else hi=mid-1; }
+    return ans;
+  }
+  function firstIdxOfDate(s, dateStr){
+    // 找某个交易日的第一根(开盘)K线索引
+    let lo=0, hi=s.t.length-1, ans=-1;
+    while(lo<=hi){
+      const mid=(lo+hi)>>1;
+      const d = fmtDate(s.t[mid]);
+      if(d < dateStr) lo=mid+1;
+      else if(d > dateStr) hi=mid-1;
+      else { ans=mid; hi=mid-1; }
+    }
+    return ans;
+  }
+  function allMAs(){
+    const list = BASE_MA.map(p=>({p, color:MA_COLORS[p]}));
+    customMAs.forEach((p,i)=>{ list.push({p, color:EXTRA_COLORS[i%EXTRA_COLORS.length]}); });
+    return list;
+  }
+  function getRefPrice(){
+    const s = series('main');
+    if(mode==='train'){
+      const i = Math.max(0, Math.min(curIdx, s.c.length-1));
+      return s.c[i];
+    }
+    if(viewRefPrice!=null) return viewRefPrice;
+    return s.c[s.c.length-1];
+  }
+  function startBars(){ return period==='daily' ? 120 : 240; }
+  function lockZoom(){
+    return mode==='train' && dateStrToMs($('trainDate').value)!=null;
+  }
+  function sliceEnd(instr){
+    if(mode!=='train') return null;                       // 全量
+    if(instr==='main') return Math.max(0, Math.min(curIdx, series('main').t.length-1));
+    const mt = series('main').t[Math.max(0, Math.min(curIdx, series('main').t.length-1))];
+    const i = nearestIdx(series('index').t, mt);
+    return Math.max(0, i);
+  }
+  function currentIdxOf(instr){
+    const s = series(instr);
+    const end = sliceEnd(instr);
+    return (end==null) ? s.t.length-1 : Math.max(0, Math.min(end, s.t.length-1));
+  }
+
+  function buildMarkLine(){
+    const data = [];
+    if(!showRefLine) return data;
+    const price = getRefPrice();
+    if(price>0){
+      data.push({ yAxis: price, lineStyle:{color:'#facc15', type:'dashed', width:1},
+        label:{show:true, position:'insideEndTop', formatter:'参考 '+price.toFixed(3), color:'#facc15', fontSize:10} });
+    }
+    if(st.shares>0){
+      data.push({ yAxis: st.avgCost, lineStyle:{color:'#38bdf8', type:'dashed', width:1},
+        label:{show:true, position:'insideEndTop', formatter:'成本 '+st.avgCost.toFixed(3), color:'#38bdf8', fontSize:10} });
+    }
+    if(mode==='train'){
+      const s = series('main');
+      const i = Math.max(0, Math.min(curIdx, s.t.length-1));
+      data.push({ xAxis: axisLabel(s.t[i]), lineStyle:{color:'#facc15', type:'solid', width:1},
+        label:{show:true, position:'insideEndTop', formatter:'当前', color:'#facc15', fontSize:10} });
+    }
+    return data;
+  }
+  function buildMarkPoint(){
+    const data = st.trades.map(t=>{
+      const isBuy = t.side==='buy';
+      return {
+        coord:[axisLabel(t.time), t.price],
+        symbol:'arrow', symbolRotate: isBuy?0:180, symbolSize:13,
+        itemStyle:{ color: isBuy?UP:DOWN },
+        label:{ show:true, formatter:isBuy?'B':'S', color:'#fff', fontSize:9, position: isBuy?'top':'bottom' }
+      };
+    });
+    return { data:data, symbolSize:13 };
+  }
+
+  function buildOption(instr, withMarkers){
+    const s = series(instr);
+    const N = s.t.length;
+    const end = sliceEnd(instr);
+    const n = (end==null) ? N : Math.min(end+1, N);
+    if(n<=0) return null;
+
+    const klines=[], vol=[], labels=[];
+    for(let i=0;i<n;i++){
+      klines.push([s.o[i], s.c[i], s.l[i], s.h[i]]);   // [open, close, low, high]
+      const up = s.c[i]>=s.o[i];
+      vol.push({ value:s.v[i], itemStyle:{color: up?UP:DOWN} });
+      labels.push(axisLabel(s.t[i]));
+    }
+    const maArr = allMAs().map(m=>({ p:m.p, color:m.color, ma: calcMA(s.c.slice(0,n), m.p) }));
+    const maSeries = maArr.map(m=>({
+      name:'MA'+m.p, type:'line', data:m.ma, showSymbol:false, smooth:false, connectNulls:true,
+      lineStyle:{width:1, color:m.color}, itemStyle:{color:m.color}, emphasis:{disabled:true}, z:3
+    }));
+
+    const candle = {
+      name:'K线', type:'candlestick', data:klines, z:2,
+      itemStyle:{ color:UP, color0:DOWN, borderColor:UP, borderColor0:DOWN }
+    };
+    if(withMarkers){
+      candle.markLine = { symbol:'none', silent:true, data: buildMarkLine() };
+      candle.markPoint = buildMarkPoint();
+    }
+
+    let zStart = 80;   // 浏览模式显示最近 20%
+    if(mode==='train'){
+      const w = startBars();
+      zStart = n<=w ? 0 : (n-w)/n*100;
+    }
+
+    // 成交量副图可收起/展开
+    const legendData = ['K线'].concat(allMAs().map(m=>'MA'+m.p));
+    const grid = showVolume
+      ? [{left:62, right:16, top:30, height:'58%'},{left:62, right:16, top:'77%', height:'13%'}]
+      : [{left:62, right:16, top:30, height:'62%'}];
+    const xAxis = [
+      {type:'category', gridIndex:0, data:labels, boundaryGap:true,
+       axisLine:{lineStyle:{color:'#334155'}}, axisLabel:{color:'#8b93a3', hideOverlap:true}, axisTick:{show:false}, splitLine:{show:false}}
+    ];
+    if(showVolume){
+      xAxis.push({type:'category', gridIndex:1, data:labels, boundaryGap:true,
+       axisLine:{lineStyle:{color:'#334155'}}, axisLabel:{show:false}, axisTick:{show:false}, splitLine:{show:false}});
+    }
+    const yAxis = [
+      {gridIndex:0, scale:true, position:'left',
+       splitLine:{lineStyle:{color:'#1f2530'}}, axisLabel:{color:'#8b93a3'}, axisLine:{show:false}}
+    ];
+    if(showVolume){
+      yAxis.push({gridIndex:1, scale:true, position:'left', splitNumber:2,
+       axisLabel:{show:false}, splitLine:{show:false}, axisLine:{show:false}});
+    }
+    const seriesArr = [candle].concat(maSeries);
+    if(showVolume){
+      legendData.push('成交量');
+      seriesArr.push({name:'成交量', type:'bar', xAxisIndex:1, yAxisIndex:1, data:vol, barWidth:'60%'});
+    }
+    const zi = showVolume ? [0,1] : [0];
+
+    return {
+      backgroundColor:'transparent',
+      animation:false,
+      axisPointer:{ type:'cross', link:[{xAxisIndex:'all'}], label:{backgroundColor:'#334155', color:'#e2e8f0'} },
+      tooltip:{
+        trigger:'item',
+        backgroundColor:'#111827', borderColor:'#334155', textStyle:{color:'#e2e8f0'},
+        formatter:function(p){
+          if(Array.isArray(p)) p = p[0];
+          if(!p || p.dataIndex==null) return '';
+          const i = p.dataIndex;
+          const tms = s.t[i];
+          if(tms==null) return '';
+          const t = period==='daily' ? fmtDate(tms) : fmtDateTime(tms);
+          if(p.seriesType==='candlestick'){
+            const o=s.o[i], c=s.c[i], l=s.l[i], h=s.h[i];
+            const closeUp = c>=o;
+            return '<div class="tip"><b>'+t+'</b><div>'
+              +'开 <span style="color:#fca5a5">'+fmtPrice(o)+'</span> '
+              +'高 <span style="color:#fca5a5">'+fmtPrice(h)+'</span> '
+              +'低 <span style="color:#86efac">'+fmtPrice(l)+'</span> '
+              +'收 <span style="color:'+(closeUp?'#fca5a5':'#86efac')+'">'+fmtPrice(c)+'</span></div></div>';
+          }
+          if(p.seriesType==='bar'){
+            return '<div class="tip"><b>'+t+'</b><div>量 '+fmtBig(s.v[i])+'</div></div>';
+          }
+          if(p.seriesType==='line'){
+            const v = p.value;
+            if(v==null) return '';
+            return '<div class="tip"><b>'+t+'</b><div><span style="color:'+(p.color||'#8b93a3')+'">'+p.seriesName+' '+fmtPrice(v)+'</span></div></div>';
+          }
+          return '';
+        }
+      },
+      legend:{
+        data:legendData,
+        textStyle:{color:'#8b93a3', fontSize:11}, top:2, itemWidth:14, itemHeight:2, type:'scroll'
+      },
+      grid:grid,
+      xAxis:xAxis,
+      yAxis:yAxis,
+      dataZoom:[
+        {type:'inside', xAxisIndex:zi, start:zStart, end:100,
+         zoomOnMouseWheel:true, moveOnMouseMove:!lockZoom(), moveOnMouseWheel:!lockZoom()},
+        {type:'slider', xAxisIndex:zi, bottom:2, height:16, showDetail:false, start:zStart, end:100,
+         disabled:lockZoom(),
+         borderColor:'#1f2530', backgroundColor:'#12151c', fillerColor:'rgba(59,130,246,0.15)',
+         handleStyle:{color:'#3b82f6'}, moveHandleStyle:{color:'#3b82f6'}, textStyle:{color:'#8b93a3'}}
+      ],
+      series:seriesArr
+    };
+  }
+
+  function getZoomState(chart){
+    const opt = chart.getOption();
+    if(opt && opt.dataZoom && opt.dataZoom[0]){
+      return { start: opt.dataZoom[0].start, end: opt.dataZoom[0].end };
+    }
+    return null;
+  }
+  function applyZoomState(chart, z){
+    if(!z) return;
+    chart.dispatchAction({type:'dataZoom', dataZoomIndex:0, start:z.start, end:z.end});
+    chart.dispatchAction({type:'dataZoom', dataZoomIndex:1, start:z.start, end:z.end});
+  }
+  function render(keepZoom){
+    const z = keepZoom ? getZoomState(mainChart) : null;
+    mainChart.setOption(buildOption('main', true), {notMerge:true});
+    indexChart.setOption(buildOption('index', false), {notMerge:true});
+    if(z) applyZoomState(mainChart, z);
+  }
+  function refreshMarkers(){
+    mainChart.setOption({ series:[{ name:'K线',
+      markLine:{ symbol:'none', silent:true, data: buildMarkLine() },
+      markPoint: buildMarkPoint() }] });
+  }
+
+  // zoom sync (two-way)
+  let syncLock = false;
+  function bindSync(a,b){
+    a.on('datazoom', function(){
+      if(syncLock) return;
+      syncLock = true;
+      const dz = a.getOption().dataZoom;
+      b.dispatchAction({type:'dataZoom', dataZoomIndex:0, start:dz[0].start, end:dz[0].end});
+      b.dispatchAction({type:'dataZoom', dataZoomIndex:1, start:dz[1].start, end:dz[1].end});
+      setTimeout(function(){ syncLock=false; }, 0);
+    });
+  }
+
+  // ---------- panel ----------
+  function set(id, txt, cls){
+    const el = $(id);
+    el.textContent = txt;
+    el.className = cls || '';
+  }
+  function updatePanel(){
+    const price = getRefPrice();
+    const mv = st.shares*price;
+    const unreal = st.shares>0 ? (price - st.avgCost)*st.shares : 0;
+    const assets = st.cash + mv;
+    const totalPL = assets - st.initial;
+    const fullShares = price>0 ? assets/price : 0;
+    const posPct = assets>0 ? mv/assets*100 : 0;
+    set('refPrice', fmtPrice(price));
+    set('holdings', st.shares+' 份');
+    set('avgCost', st.shares>0 ? fmtPrice(st.avgCost) : '—');
+    set('mv', fmtMoney(mv));
+    set('cash', fmtMoney(st.cash));
+    set('position', posPct.toFixed(1)+'%');
+    set('fullShares', Math.round(fullShares)+' 份');
+    set('unreal', fmtMoney(unreal), unreal>=0?'up':'down');
+    set('realized', fmtMoney(st.realized), st.realized>=0?'up':'down');
+    set('assets', fmtMoney(assets));
+    set('totalPL', fmtMoney(totalPL), totalPL>=0?'up':'down');
+    const bq = parseInt($('buyQty').value,10)||0;
+    const sq = parseInt($('sellQty').value,10)||0;
+    set('buyAmt', bq? ('≈ '+fmtMoney(bq*price)) : '');
+    set('sellAmt', sq? ('≈ '+fmtMoney(sq*price)) : '');
+    if(mode==='train'){
+      const s = series('main');
+      const i = Math.max(0, Math.min(curIdx, s.t.length-1));
+      set('trainTime', (period==='daily'?fmtDate:fmtDateTime)(s.t[i]));
+      // T+1：跨日时记录「今日可卖份额」= 当日开盘前持有的份额
+      const d = fmtDate(s.t[i]);
+      if(d !== t1Date){ t1Date = d; sellableToday = st.shares; }
+      set('sellableToday', sellableToday+' 份');
+    } else {
+      set('trainTime', '—');
+      set('sellableToday', '—');
+    }
+    // 上证指数涨跌幅：5分钟=相对当日开盘；日线=相对前收
+    const is = series('index');
+    const ii = currentIdxOf('index');
+    if(is.t.length>0 && ii>=0 && is.c[ii]!=null){
+      let base = null;
+      if(period === 'min5'){
+        const day = fmtDate(is.t[ii]);
+        const dayStart = firstIdxOfDate(is, day);
+        base = (dayStart>=0) ? is.o[dayStart] : is.o[ii];
+      } else if(ii>=1){
+        base = is.c[ii-1];
+      } else {
+        base = is.o[ii];
+      }
+      if(base && base>0){
+        const cur = is.c[ii];
+        const pct = (cur - base)/base*100;
+        const sign = pct>=0 ? '+' : '';
+        set('idxChange', cur.toFixed(2)+'  '+sign+pct.toFixed(2)+'%', (pct>=0?'up':'down')+' chg');
+      } else {
+        set('idxChange', '', 'chg');
+      }
+    } else {
+      set('idxChange', '', 'chg');
+    }
+  }
+  function logTrade(){
+    const el = $('tradeLog');
+    const recent = st.trades.slice(-40).reverse();
+    el.innerHTML = recent.map(function(t){
+      const cls = t.side==='buy'?'up':'down';
+      const label = t.side==='buy'?'买':'卖';
+      return '<div class="logrow"><span class="'+cls+'">'+label+'</span> '
+        + t.shares+'份 @'+t.price.toFixed(3)
+        + (t.pl!=null? ' <span class="'+(t.pl>=0?'up':'down')+'">'+(t.pl>=0?'+':'')+t.pl.toFixed(2)+'</span>':'')
+        + ' <span class="muted">'+fmtDateTime(t.time)+'</span></div>';
+    }).join('') || '<div class="muted">暂无记录</div>';
+  }
+  function renderMAChips(){
+    const el = $('maChips');
+    if(customMAs.length===0){
+      el.innerHTML = '<span class="muted" style="font-size:11px">默认 MA5/10/20/30/60/144/250，图例点击可隐藏</span>';
+      return;
+    }
+    el.innerHTML = customMAs.map((p,i)=>{
+      const color = EXTRA_COLORS[i%EXTRA_COLORS.length];
+      return '<span class="chip"><span class="dot" style="background:'+color+'"></span>MA'+p
+        +'<span class="x" data-p="'+p+'">×</span></span>';
+    }).join('');
+    el.querySelectorAll('.x').forEach(function(x){
+      x.onclick = function(){
+        const p = parseInt(x.getAttribute('data-p'),10);
+        customMAs = customMAs.filter(v=>v!==p);
+        renderMAChips(); render();
+      };
+    });
+  }
+
+  function populateTrainDates(){
+    const sel = $('trainDate');
+    const s = series('main');
+    const dates = [];
+    let prev = null;
+    for(let i=0;i<s.t.length;i++){
+      const d = fmtDate(s.t[i]);
+      if(d !== prev){ dates.push(d); prev = d; }
+    }
+    dates.reverse();   // 最近的在前
+    let html = '<option value="">留空则按最近K线</option>';
+    for(let i=0;i<dates.length;i++){
+      html += '<option value="'+dates[i]+'">'+dates[i]+'</option>';
+    }
+    sel.innerHTML = html;
+  }
+
+  // ---------- trading ----------
+  function tradeTime(){
+    const s = series('main');
+    const i = mode==='train' ? Math.max(0, Math.min(curIdx, s.t.length-1)) : s.t.length-1;
+    return s.t[i];
+  }
+  function buy(){
+    if(mode!=='train'){ alert('请先开启训练模式'); return; }
+    const qty = parseInt($('buyQty').value,10);
+    if(!qty || qty<=0){ alert('请输入买入份额'); return; }
+    const price = getRefPrice();
+    const amount = qty*price;
+    if(amount > st.cash + 1e-6){ alert('现金不足：需 '+fmtMoney(amount)+'，现金 '+fmtMoney(st.cash)); return; }
+    const oldCost = st.shares*st.avgCost;
+    st.shares += qty;
+    st.cash -= amount;
+    st.avgCost = st.shares>0 ? (oldCost + amount)/st.shares : 0;
+    st.trades.push({ time:tradeTime(), side:'buy', shares:qty, price:price, amount:amount });
+    updatePanel(); refreshMarkers(); logTrade();
+  }
+  function sell(){
+    if(mode!=='train'){ alert('请先开启训练模式'); return; }
+    const qty = parseInt($('sellQty').value,10);
+    if(!qty || qty<=0){ alert('请输入卖出份额'); return; }
+    if(st.shares<=0){ alert('无持仓可卖'); return; }
+    let q = Math.min(qty, st.shares);
+    // A股 T+1：当日买入的份额当日不可卖，只能卖「今日开盘前已持有」的份额
+    if(q > sellableToday){
+      if(sellableToday <= 0){
+        alert('T+1 提醒：今日无可用卖出份额（当日买入的份额需明日才能卖）');
+        return;
+      }
+      const locked = st.shares - sellableToday;
+      if(!confirm('T+1 提醒：今日可卖 '+sellableToday+' 份（昨日及以前买入）；今日新买入的 '+locked+' 份需明日才能卖。\n\n是否只卖出 '+sellableToday+' 份？')){
+        return;
+      }
+      q = sellableToday;
+    }
+    const price = getRefPrice();
+    const amount = q*price;
+    const pl = (price - st.avgCost)*q;
+    st.realized += pl;
+    st.cash += amount;
+    st.shares -= q;
+    if(st.shares===0) st.avgCost = 0;
+    st.trades.push({ time:tradeTime(), side:'sell', shares:q, price:price, amount:amount, pl:pl });
+    updatePanel(); refreshMarkers(); logTrade();
+  }
+  function applyFrac(side){
+    const price = getRefPrice();
+    if(!(price>0)) return;
+    const sel = $(side==='buy' ? 'buyFrac' : 'sellFrac');
+    const v = parseFloat(sel.value);
+    if(!(v>0)) return;
+    const inputId = side==='buy' ? 'buyQty' : 'sellQty';
+    let qty;
+    if(side==='buy'){
+      qty = Math.floor(st.cash * v / price);
+    } else {
+      qty = Math.floor(st.shares * v);
+    }
+    if(qty<1) qty = 1;
+    $(inputId).value = qty;
+    updatePanel();
+  }
+  function exportCSV(){
+    const rows = [['时间','方向','份额','价格','金额','单笔盈亏']];
+    for(const t of st.trades){
+      rows.push([fmtDateTime(t.time), t.side==='buy'?'买入':'卖出', t.shares,
+        t.price.toFixed(3), t.amount.toFixed(2), t.pl!=null? t.pl.toFixed(2):'']);
+    }
+    rows.push([]);
+    rows.push(['初始资金','', '', '', st.initial.toFixed(2)]);
+    rows.push(['总资产','', '', '', (st.cash + st.shares*getRefPrice()).toFixed(2)]);
+    rows.push(['总收益','', '', '', (st.cash + st.shares*getRefPrice() - st.initial).toFixed(2)]);
+    const csv = rows.map(r=>r.map(function(c){ return '"'+c+'"'; }).join(',')).join('\r\n');
+    const filename = '做T交易记录_'+fmtDate(Date.now())+'.csv';
+    if(window.Android && typeof window.Android.saveCSV === 'function'){
+      window.Android.saveCSV('\uFEFF'+csv, filename);
+      return;
+    }
+    const blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+  function resetAll(){
+    if(!confirm('将导出买卖记录CSV并把账户清零（现金回到初始资金）？')) return;
+    if(st.trades.length>0) exportCSV();
+    st.cash = st.initial; st.shares = 0; st.avgCost = 0; st.realized = 0; st.trades = [];
+    t1Date = null; sellableToday = 0;
+    $('buyQty').value=''; $('sellQty').value='';
+    updatePanel(); refreshMarkers(); logTrade();
+  }
+  function setInitial(){
+    const v = parseFloat($('initCap').value);
+    if(!(v>=0)){ alert('请输入初始资金'); return; }
+    if((st.trades.length>0 || st.shares>0) && !confirm('修改初始资金会重置账户，确定？')) return;
+    st.initial = v; st.cash = v; st.shares = 0; st.avgCost = 0; st.realized = 0; st.trades = [];
+    t1Date = null; sellableToday = 0;
+    $('buyQty').value=''; $('sellQty').value='';
+    updatePanel(); refreshMarkers(); logTrade();
+  }
+
+  // ---------- mode / period ----------
+  function setMode(m){
+    const wasTrain = mode==='train';
+    mode = m;
+    const on = mode==='train';
+    if(on && !wasTrain) t1Date = null;   // 进入训练模式时重置 T+1 基准日
+    $('btnTrain').textContent = on ? '训练模式：开' : '训练模式：关';
+    $('btnTrain').classList.toggle('active', on);
+    $('btnBuy').disabled = !on;
+    $('btnSell').disabled = !on;
+    $('buyFrac').disabled = !on;
+    $('sellFrac').disabled = !on;
+    $('btnNext').disabled = !on;
+    $('btnPrev').disabled = !on;
+    $('btnNext').textContent = period==='daily' ? '下一天' : '下一根';
+    $('btnPrev').textContent = period==='daily' ? '上一天' : '上一根';
+    if(on){
+      if(!wasTrain) savedViewZoom = getZoomState(mainChart);   // 记住进入训练前的停留位置
+      const s = series('main');
+      const dateStr = $('trainDate').value;
+      let idx;
+      if(dateStr){
+        const i = firstIdxOfDate(s, dateStr);
+        idx = i>=0 ? i : Math.max(0, s.t.length - startBars());
+      } else if(trainStartIdx!=null && trainStartIdx>=0 && trainStartIdx<s.t.length){
+        idx = trainStartIdx;
+      } else {
+        idx = Math.max(0, s.t.length - startBars());
+      }
+      curIdx = idx;
+      render();
+    } else {
+      curIdx = -1;
+      render();
+      if(savedViewZoom) applyZoomState(mainChart, savedViewZoom);   // 关闭后回到一开始的停留位置
+    }
+    updatePanel();
+  }
+  function step(delta){
+    if(mode!=='train') return;
+    const s = series('main');
+    curIdx = Math.max(0, Math.min(curIdx+delta, s.t.length-1));
+    render(true);
+    updatePanel();
+  }
+  function setPeriod(p){
+    period = p;
+    $('btnDaily').classList.toggle('on', p==='daily');
+    $('btn5m').classList.toggle('on', p==='min5');
+    viewRefPrice = null;
+    trainStartIdx = null;
+    t1Date = null;
+    populateTrainDates();
+    curIdx = mode==='train' ? Math.max(0, series('main').t.length - startBars()) : -1;
+    $('btnNext').textContent = p==='daily' ? '下一天' : '下一根';
+    $('btnPrev').textContent = p==='daily' ? '上一天' : '上一根';
+    render();
+    updatePanel();
+  }
+
+  // ---------- init ----------
+  function init(){
+    mainChart = echarts.init($('mainChart'));
+    indexChart = echarts.init($('indexChart'));
+    bindSync(mainChart, indexChart);
+    bindSync(indexChart, mainChart);
+    mainChart.on('click', function(p){
+      if(p.seriesType!=='candlestick' || p.dataIndex==null) return;
+      const s = series('main');
+      if(p.dataIndex<0 || p.dataIndex>=s.c.length) return;
+      if(mode==='train'){
+        curIdx = p.dataIndex;      // 回退到点击的K线
+        render(true); updatePanel();
+      } else {
+        viewRefPrice = s.c[p.dataIndex];
+        trainStartIdx = p.dataIndex;
+        updatePanel(); refreshMarkers();
+      }
+    });
+
+    refViewInit();
+    populateTrainDates();
+    render();
+    renderMAChips();
+    updatePanel();
+    logTrade();
+
+    $('chkRefLine').onchange = function(){ showRefLine = $('chkRefLine').checked; refreshMarkers(); };
+    $('chkVolume').onchange = function(){ showVolume = $('chkVolume').checked; render(true); };
+    $('chkIndex').onchange = function(){
+      showIndex = $('chkIndex').checked;
+      $('indexBox').style.display = showIndex ? '' : 'none';
+      mainChart.resize();
+      if(showIndex) indexChart.resize();
+    };
+    $('btnTrain').onclick = function(){ setMode(mode==='train'?'view':'train'); };
+    $('btnPrev').onclick = function(){ step(-1); };
+    $('btnNext').onclick = function(){ step(1); };
+    $('btnBuy').onclick = buy;
+    $('btnSell').onclick = sell;
+    (function(){
+      let html = '';
+      for(let i=1;i<=10;i++) html += '<option value="'+(i/10)+'">'+i+'/10</option>';
+      $('buyFrac').insertAdjacentHTML('beforeend', html);
+      $('sellFrac').insertAdjacentHTML('beforeend', html);
+    })();
+    $('buyFrac').onchange = function(){ applyFrac('buy'); };
+    $('sellFrac').onchange = function(){ applyFrac('sell'); };
+    $('trainDate').addEventListener('change', function(){
+      if(mode!=='train') return;
+      const s = series('main');
+      const dateStr = $('trainDate').value;
+      if(!dateStr){ render(true); updatePanel(); return; }
+      const i = firstIdxOfDate(s, dateStr);
+      curIdx = i>=0 ? i : curIdx;
+      render();
+      updatePanel();
+    });
+    $('btnSetInit').onclick = setInitial;
+    $('btnAddMA').onclick = function(){
+      const v = parseInt($('maInput').value,10);
+      if(!v || v<2){ alert('请输入≥2的均线周期'); return; }
+      if(BASE_MA.indexOf(v)>=0){ alert('MA'+v+' 已是默认均线'); return; }
+      if(customMAs.indexOf(v)>=0){ alert('MA'+v+' 已添加'); return; }
+      customMAs.push(v);
+      $('maInput').value='';
+      renderMAChips(); render();
+    };
+    $('buyQty').addEventListener('input', function(){ $('buyFrac').value=''; updatePanel(); });
+    $('sellQty').addEventListener('input', function(){ $('sellFrac').value=''; updatePanel(); });
+    document.addEventListener('keydown', function(e){
+      if(e.target && (e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')) return;
+      if(mode!=='train') return;
+      if(e.key==='ArrowRight'){ step(1); }
+      else if(e.key==='ArrowLeft'){ step(-1); }
+    });
+    window.addEventListener('resize', function(){ mainChart.resize(); if(showIndex) indexChart.resize(); });
+  }
+
+  function refViewInit(){
+    const s = series('main');
+    viewRefPrice = s.c[s.c.length-1];
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
